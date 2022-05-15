@@ -36,7 +36,7 @@ const chooseRandomEquation = (): string => {
 function Game() {
   const [answerEquation, setAnswerEquation] = useState(chooseRandomEquation())
   const [cheat, setCheat] = useState(false)
-  const ROWS = 6
+  const ROWS = 1
   const COLS = answerEquation.length
 
   useEffect(() => {
@@ -51,10 +51,15 @@ function Game() {
 
   useEffect(() => {
     setHeadValue("[playing...]")
-    if (guessCount == ROWS) {
+    if (
+      guessCount > 0 &&
+      GameMatrix[guessCount - 1].filter((col) => {
+        return col.state === "correct"
+      }).length === COLS
+    ) {
+      setHeadValue("[Won...]")
+    } else if (guessCount == ROWS) {
       setGameState("lost")
-      setHeadValue("[lost...]")
-      setIsError(true)
     }
   }, [guessCount])
 
