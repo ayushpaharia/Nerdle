@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { evaluate } from "mathjs"
 
 type GameSquare = {
@@ -6,12 +6,14 @@ type GameSquare = {
   state: "default" | "incorrect" | "correct" | "partially-correct" | "empty"
 }
 
+// Create row x cols matrix
 function create2DArray(rows: number, cols: number): Array<Array<GameSquare>> {
   return Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ value: "", state: "default" })),
   )
 }
 
+// Checks for the validity of an equation
 function checkIfValidEquation(equation: string): boolean {
   if (!equation.split("").find((char) => char === "=")) {
     return false
@@ -21,7 +23,8 @@ function checkIfValidEquation(equation: string): boolean {
   return evaluate(LHS) == evaluate(RHS)
 }
 
-const Answers = [
+// List of Equation for the game
+const Answers: Array<string> = [
   "1+2-3=0",
   "5/5=1",
   "10*10=100",
@@ -29,25 +32,40 @@ const Answers = [
   "200/100=2",
   "144/12+1=13",
 ]
+
+// Choose a Random equation from the list
 const chooseRandomEquation = (): string => {
   return Answers[Math.floor(Math.random() * Answers.length)]
 }
 
-function Game() {
-  const [answerEquation, setAnswerEquation] = useState(chooseRandomEquation())
-  const [cheat, setCheat] = useState(false)
-  const [isCheatUsed, setIsCheatUsed] = useState(false)
-  const [ROWS, setROWS] = useState(6)
+const Game: React.FC = () => {
+  // Answer Equation for current game
+  const [answerEquation, setAnswerEquation] = useState<string>(
+    chooseRandomEquation(),
+  )
+
+  // Number of rows and columns in the game
+  const [ROWS, setROWS] = useState<number>(6)
   const COLS = answerEquation.length
 
-  useEffect(() => {
-    SetGameMatrix(create2DArray(ROWS, COLS))
-  }, [answerEquation, ROWS])
+  // Checks if cheats are on
+  const [cheat, setCheat] = useState<boolean>(false)
+  // Checks if cheats were used for current equation
+  const [isCheatUsed, setIsCheatUsed] = useState<boolean>(false)
 
-  const [guessCount, setGuessCount] = useState(0)
+  // Current Guesses made
+  const [guessCount, setGuessCount] = useState<number>(0)
+  // Game Difficulty
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
     "easy",
   )
+
+  // NewMatrix if AnswerEquation or ROWS changes
+  useEffect(() => {
+    SetGameMatrix(create2DArray(ROWS, COLS))
+  }, [answerEquation, difficulty])
+
+  // Difficulty Toggle bw easy(6-rows), medium(4-rows) and hard(2-rows)
   function toggleDifficulty() {
     if (guessCount === 0) {
       if (difficulty === "easy") {
@@ -63,45 +81,38 @@ function Game() {
     }
   }
 
-  const [headValue, setHeadValue] = useState("")
+  // Value of the Head
+  const [headValue, setHeadValue] = useState({
+    value: "[playing...]",
+    color: "green",
+  })
 
   useEffect(() => {
-    if (guessCount === 0) setHeadValue("[playing...]")
+    // Checks if the game is Won
     if (
       guessCount > 0 &&
       GameMatrix[guessCount - 1].filter((col) => {
         return col.state === "correct"
       }).length === COLS
     ) {
-      if (!isCheatUsed) setHeadValue("[Won...]")
+      if (!isCheatUsed) setHeadValue({ value: "[Won...]", color: "green" })
       else {
-        setHeadValue("[Cheat used...]")
-        setIsError(true) // for red [Cheat used...]
+        setHeadValue({ value: "[Cheat used...]", color: "red" })
       }
       setGuessCount(-1)
     } else if (guessCount == ROWS) {
-      setHeadValue("[lost...]")
-      setIsError(true) // for red [lost...]
+      setHeadValue({ value: "[Lost...]", color: "red" })
       setGuessCount(-1)
     }
   }, [guessCount])
 
-  const [isValidEquation, setIsValidEquation] = useState(true)
-  const [isError, setIsError] = useState(false)
-
   useEffect(() => {
-    let isValidEquation = checkIfValidEquation(answerEquation)
+    let isValid = checkIfValidEquation(answerEquation)
 
-    setIsValidEquation(isValidEquation)
-    setIsError(!isValidEquation)
-  }, [])
-
-  useEffect(() => {
-    if (!isValidEquation) {
-      setIsError(true)
-      setHeadValue("[Invalid equation]")
-    }
-  }, [isError])
+    if (!isValid) {
+      setHeadValue({ value: "[Invalid Equation...]", color: "red" })
+    } else setHeadValue({ value: "[playing...]", color: "green" })
+  }, [answerEquation])
 
   const [GameMatrix, SetGameMatrix] = useState(create2DArray(ROWS, COLS))
 
@@ -117,14 +128,12 @@ function Game() {
     if (e.key.toLowerCase() === "enter") {
       takeAGuess()
       return
-    }
-    if (e.key.toLowerCase() === " ") {
+    } else if (e.key.toLowerCase() === " " || e.key.toLowerCase() === "tab") {
       // TODO: goto next input
       return
     }
-
     // Check valid character 0-9 or + - * /
-    if (e.key.match(/[\d+/*-=]/)) {
+    else if (e.key.match(/[\d+/*-=]/)) {
       SetGameMatrix((prev) => {
         const newMatrix = [...prev]
         newMatrix[rowIndex][colIndex] = { value: e.key, state: "default" }
@@ -134,6 +143,7 @@ function Game() {
   }
 
   const takeAGuess = () => {
+    if (guessCount === -1) return
     let isFilled = true
     let answer = ""
     for (let i = 0; i < COLS; i++) {
@@ -149,11 +159,8 @@ function Game() {
     if (isFilled) {
       // Evaluate Answer
       if (!checkIfValidEquation(answer)) {
-        console.log("[Invalid answer]")
-        setIsError(true)
-        setHeadValue("[Invalid Equation]")
+        setHeadValue({ value: "[Invalid Equation]", color: "red" })
       } else {
-        setIsError(false)
         const newMatrix = [...GameMatrix]
         for (let i = 0; i < COLS; i++) {
           SetGameMatrix(() => {
@@ -175,8 +182,10 @@ function Game() {
             return newMatrix
           })
         }
-        setGuessCount((prev) => prev + 1)
-        setHeadValue("")
+        if (guessCount !== ROWS) {
+          setGuessCount((prev) => prev + 1)
+        }
+        setHeadValue({ value: "[playing...]", color: "green" })
       }
     }
   }
@@ -185,14 +194,12 @@ function Game() {
     <div className="grid h-full place-items-center">
       {/* Game State */}
       <div
-        className={`relative w-[496px]  rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100 ${
-          isError ? "text-red-500" : "text-green-500"
-        }`}
+        className={`relative w-[496px]  rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100 text-${headValue.color}-500`}
       >
         <span className="absolute top-0 left-0 mt-2 ml-2 text-xs tracking-wider text-gray-400 uppercase">
           Game State:
         </span>
-        {headValue}
+        {headValue.value}
       </div>
       {/* GameMatrix */}
       <div className="flex flex-col items-center gap-2">
@@ -227,7 +234,8 @@ function Game() {
             onClick={() => {
               SetGameMatrix(create2DArray(ROWS, COLS))
               setGuessCount(0)
-              setIsError(false)
+              if (!isCheatUsed)
+                setHeadValue({ value: "[playing...]", color: "red" })
             }}
             className="px-6 py-4 font-black text-white bg-red-500"
           >
@@ -237,7 +245,6 @@ function Game() {
             onClick={() => {
               setAnswerEquation(chooseRandomEquation())
               setGuessCount(0)
-              setIsError(false)
               setIsCheatUsed(false)
             }}
             className="px-6 py-4 font-black text-white bg-blue-500"
@@ -250,8 +257,7 @@ function Game() {
                 setIsCheatUsed(true)
                 return !prev
               })
-              setHeadValue("[Cheat Mode]")
-              setIsError(true) // for red [Cheat Mode]
+              setHeadValue({ value: "[Cheat used...]", color: "red" })
             }}
             className="px-6 py-4 font-black text-white bg-black"
           >
