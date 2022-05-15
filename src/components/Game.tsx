@@ -36,30 +36,53 @@ const chooseRandomEquation = (): string => {
 function Game() {
   const [answerEquation, setAnswerEquation] = useState(chooseRandomEquation())
   const [cheat, setCheat] = useState(false)
-  const ROWS = 1
+  const [isCheatUsed, setIsCheatUsed] = useState(false)
+  const [ROWS, setROWS] = useState(6)
   const COLS = answerEquation.length
 
   useEffect(() => {
     SetGameMatrix(create2DArray(ROWS, COLS))
-  }, [answerEquation])
+  }, [answerEquation, ROWS])
 
   const [guessCount, setGuessCount] = useState(0)
-  const [gameState, setGameState] = useState<"playing" | "lost" | "won">(
-    "playing",
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
+    "easy",
   )
+  function toggleDifficulty() {
+    if (guessCount === 0) {
+      if (difficulty === "easy") {
+        setDifficulty("medium")
+        setROWS(4)
+      } else if (difficulty === "medium") {
+        setDifficulty("hard")
+        setROWS(2)
+      } else {
+        setDifficulty("easy")
+        setROWS(6)
+      }
+    }
+  }
+
   const [headValue, setHeadValue] = useState("")
 
   useEffect(() => {
-    setHeadValue("[playing...]")
+    if (guessCount === 0) setHeadValue("[playing...]")
     if (
       guessCount > 0 &&
       GameMatrix[guessCount - 1].filter((col) => {
         return col.state === "correct"
       }).length === COLS
     ) {
-      setHeadValue("[Won...]")
+      if (!isCheatUsed) setHeadValue("[Won...]")
+      else {
+        setHeadValue("[Cheat used...]")
+        setIsError(true) // for red [Cheat used...]
+      }
+      setGuessCount(-1)
     } else if (guessCount == ROWS) {
-      setGameState("lost")
+      setHeadValue("[lost...]")
+      setIsError(true) // for red [lost...]
+      setGuessCount(-1)
     }
   }, [guessCount])
 
@@ -162,7 +185,7 @@ function Game() {
     <div className="grid h-full place-items-center">
       {/* Game State */}
       <div
-        className={`relative w-[496px] rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100 ${
+        className={`relative w-[496px]  rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100 ${
           isError ? "text-red-500" : "text-green-500"
         }`}
       >
@@ -215,16 +238,37 @@ function Game() {
               setAnswerEquation(chooseRandomEquation())
               setGuessCount(0)
               setIsError(false)
+              setIsCheatUsed(false)
             }}
             className="px-6 py-4 font-black text-white bg-blue-500"
           >
             New ✨
           </button>
           <button
-            onClick={() => setCheat((prev) => !prev)}
+            onClick={() => {
+              setCheat((prev) => {
+                setIsCheatUsed(true)
+                return !prev
+              })
+              setHeadValue("[Cheat Mode]")
+              setIsError(true) // for red [Cheat Mode]
+            }}
             className="px-6 py-4 font-black text-white bg-black"
           >
             Cheat 👶
+          </button>
+          <button
+            onClick={toggleDifficulty}
+            className={`px-6 py-4 font-black text-white  ${
+              difficulty === "easy"
+                ? "bg-gray-300"
+                : difficulty === "medium"
+                ? "bg-yellow-300"
+                : "bg-red-600"
+            }`}
+          >
+            {/* capitalize string */}
+            {difficulty.charAt(0).toUpperCase() + difficulty.slice(1) + " 🤖"}
           </button>
         </div>
         {/* Reference */}
