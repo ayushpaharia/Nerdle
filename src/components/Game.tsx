@@ -36,7 +36,7 @@ const chooseRandomEquation = (): string => {
 function Game() {
   const [answerEquation, setAnswerEquation] = useState(chooseRandomEquation())
   const [cheat, setCheat] = useState(false)
-  const ROWS = 2
+  const ROWS = 6
   const COLS = answerEquation.length
 
   useEffect(() => {
