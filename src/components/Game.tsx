@@ -84,7 +84,7 @@ const Game: React.FC = () => {
   // Value of the Head
   const [headValue, setHeadValue] = useState({
     value: "[playing...]",
-    color: "green",
+    color: "text-green-500",
   })
 
   useEffect(() => {
@@ -95,13 +95,14 @@ const Game: React.FC = () => {
         return col.state === "correct"
       }).length === COLS
     ) {
-      if (!isCheatUsed) setHeadValue({ value: "[Won...]", color: "green" })
+      if (!isCheatUsed)
+        setHeadValue({ value: "[Won...]", color: "text-green-500" })
       else {
-        setHeadValue({ value: "[Cheat used...]", color: "red" })
+        setHeadValue({ value: "[Cheat used...]", color: "text-red-500" })
       }
       setGuessCount(-1)
     } else if (guessCount == ROWS) {
-      setHeadValue({ value: "[Lost...]", color: "red" })
+      setHeadValue({ value: "[Lost...]", color: "text-red-500" })
       setGuessCount(-1)
     }
   }, [guessCount])
@@ -110,8 +111,8 @@ const Game: React.FC = () => {
     let isValid = checkIfValidEquation(answerEquation)
 
     if (!isValid) {
-      setHeadValue({ value: "[Invalid Equation...]", color: "red" })
-    } else setHeadValue({ value: "[playing...]", color: "green" })
+      setHeadValue({ value: "[Invalid Equation...]", color: "text-red-500" })
+    } else setHeadValue({ value: "[playing...]", color: "text-green-500" })
   }, [answerEquation])
 
   const [GameMatrix, SetGameMatrix] = useState(create2DArray(ROWS, COLS))
@@ -159,7 +160,7 @@ const Game: React.FC = () => {
     if (isFilled) {
       // Evaluate Answer
       if (!checkIfValidEquation(answer)) {
-        setHeadValue({ value: "[Invalid Equation]", color: "red" })
+        setHeadValue({ value: "[Invalid Equation]", color: "text-red-500" })
       } else {
         const newMatrix = [...GameMatrix]
         for (let i = 0; i < COLS; i++) {
@@ -185,7 +186,7 @@ const Game: React.FC = () => {
         if (guessCount !== ROWS) {
           setGuessCount((prev) => prev + 1)
         }
-        setHeadValue({ value: "[playing...]", color: "green" })
+        setHeadValue({ value: "[playing...]", color: "text-green-500" })
       }
     }
   }
@@ -194,7 +195,7 @@ const Game: React.FC = () => {
     <div className="grid h-full place-items-center">
       {/* Game State */}
       <div
-        className={`text-${headValue.color}-500 relative w-[496px]  rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100`}
+        className={`${headValue.color} relative w-[496px] rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100`}
       >
         <span className="absolute top-0 left-0 mt-2 ml-2 text-xs tracking-wider text-gray-400 uppercase">
           Game State:
@@ -235,7 +236,7 @@ const Game: React.FC = () => {
               SetGameMatrix(create2DArray(ROWS, COLS))
               setGuessCount(0)
               if (!isCheatUsed)
-                setHeadValue({ value: "[playing...]", color: "green" })
+                setHeadValue({ value: "[playing...]", color: "text-green-500" })
             }}
             className="px-6 py-4 font-black text-white bg-red-500"
           >
@@ -257,7 +258,7 @@ const Game: React.FC = () => {
                 setIsCheatUsed(true)
                 return !prev
               })
-              setHeadValue({ value: "[Cheat used...]", color: "red" })
+              setHeadValue({ value: "[Cheat used...]", color: "text-red-500" })
             }}
             className="px-6 py-4 font-black text-white bg-black"
           >
