@@ -194,7 +194,7 @@ const Game: React.FC = () => {
     <div className="grid h-full place-items-center">
       {/* Game State */}
       <div
-        className={`relative w-[496px]  rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100 text-${headValue.color}-500`}
+        className={`text-${headValue.color}-500 relative w-[496px]  rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100`}
       >
         <span className="absolute top-0 left-0 mt-2 ml-2 text-xs tracking-wider text-gray-400 uppercase">
           Game State:
@@ -235,7 +235,7 @@ const Game: React.FC = () => {
               SetGameMatrix(create2DArray(ROWS, COLS))
               setGuessCount(0)
               if (!isCheatUsed)
-                setHeadValue({ value: "[playing...]", color: "red" })
+                setHeadValue({ value: "[playing...]", color: "green" })
             }}
             className="px-6 py-4 font-black text-white bg-red-500"
           >
