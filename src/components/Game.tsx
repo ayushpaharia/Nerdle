@@ -34,7 +34,7 @@ const Answers: string[] = [
 ]
 
 // Custom colors
-let dP: string[] = [
+const dP: string[] = [
   "bg-[#99fc37]",
   "bg-[#cafc25]",
   "bg-[#fcd825]",
@@ -42,6 +42,11 @@ let dP: string[] = [
   "bg-[#ef4343]",
   "bg-[#dc2626]",
 ].reverse()
+
+const buttons = {
+  reset: false,
+  cheat: false,
+}
 
 const RowsByDifficultyLevel = [
   { name: "easy", rows: 6, color: "#99fc37" },
@@ -291,7 +296,9 @@ const Game: React.FC<{
               if (!isCheatUsed)
                 setHeadValue({ value: "[playing...]", color: "text-green-500" })
             }}
-            className="px-6 py-4 font-black text-white bg-red-500"
+            className={`${
+              buttons.reset ? "" : "hidden"
+            } px-6 py-4 font-black text-white bg-red-500`}
           >
             Reset 💀
           </button>
@@ -313,7 +320,9 @@ const Game: React.FC<{
               })
               setHeadValue({ value: "[Cheat used...]", color: "text-red-500" })
             }}
-            className="px-6 py-4 font-black text-white bg-black"
+            className={`${
+              buttons.cheat ? "" : "hidden"
+            } px-6 py-4 font-black text-white bg-black`}
           >
             Cheat 👶
           </button>
@@ -321,7 +330,9 @@ const Game: React.FC<{
             difficultyLevel={difficultyLevel}
             onClick={toggleDifficulty}
           >
-            {RowsByDifficultyLevel[difficultyLevel].name.charAt(0) +
+            {RowsByDifficultyLevel[difficultyLevel].name
+              .charAt(0)
+              .toUpperCase() +
               RowsByDifficultyLevel[difficultyLevel].name.slice(1) +
               " 🤖"}
           </CustomButton>
