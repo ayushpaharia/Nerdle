@@ -187,14 +187,17 @@ const Game: React.FC<{
     }
   }
 
-  let masterkey = "$2b$10$/eoyrTf039pS4cejUztjHe2XumEkezy/FVYJo6PFAt/qohi5rTPX2"
-
   // On Mount
+  let masterKey = API_KEY
   const fetchConfig = async () => {
     let {
       data: { record },
-    } = await axios.get(API_KEY, {
-      headers: { "X-Master-Key": masterkey },
+    } = await axios({
+      url: "https://api.jsonbin.io/v3/b/62824f03019db46796a1252a",
+      method: "get",
+      headers: {
+        "X-Master-Key": masterKey,
+      },
     })
     return record
   }
