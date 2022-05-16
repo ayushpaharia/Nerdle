@@ -33,6 +33,16 @@ const Answers: string[] = [
   "144/12+1=13",
 ]
 
+// Custom colors
+let dP: string[] = [
+  "bg-[#99fc37]",
+  "bg-[#cafc25]",
+  "bg-[#fcd825]",
+  "bg-[#f77171]",
+  "bg-[#ef4343]",
+  "bg-[#dc2626]",
+].reverse()
+
 const RowsByDifficultyLevel = [
   { name: "easy", rows: 6, color: "#99fc37" },
   { name: "amateur", rows: 5, color: "#cafc25" },
@@ -396,16 +406,6 @@ const CustomButton: React.FC<Partial<CustomButtonProps>> = ({
   difficultyLevel,
   onClick,
 }) => {
-  // Custom colors
-  let dP: string[] = [
-    "bg-[#99fc37]",
-    "bg-[#cafc25]",
-    "bg-[#fcd825]",
-    "bg-[#f77171]",
-    "bg-[#ef4343]",
-    "bg-[#dc2626]",
-  ].reverse()
-
   // TODO: get colors from config
   // dP = RowsByDifficultyLevel.map((difficultyLevel) => difficultyLevel.color).reverse()
 

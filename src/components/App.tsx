@@ -3,7 +3,7 @@ import Navbar from "components/Navbar"
 import Game from "components/Game"
 
 function App() {
-  const [open, setOpen] = useState<boolean>(true)
+  const [open, setOpen] = useState<boolean>(false)
   const [yourScore, setYourScore] = useState<string>("")
   const [scoreArray, setScoreArray] = useState<number[][]>([[]])
 
@@ -29,7 +29,7 @@ function App() {
   }
 
   const getScoreHeight = () => {
-    return yourScore.length === 0 ? 0 : yourScore.split("\n")[1].length / 2
+    return yourScore.length === 0 ? 0 : yourScore.split("\n").length
   }
 
   return (
@@ -49,7 +49,7 @@ function App() {
           <h1 className="mb-2 text-2xl font-black text-black">Your Score</h1>
           <textarea
             style={{
-              height: 27 + getScoreHeight() * 16 + 27,
+              height: 27 + getScoreHeight() * 26 + 27,
               width: 15 + scoreArray[0].length * 24 + 15,
             }}
             className="pt-6 overflow-y-hidden text-xl font-bold text-center bg-gray-200 rounded-sm outline-none resize-none "
