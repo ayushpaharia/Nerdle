@@ -7,7 +7,7 @@ type GameSquare = {
 }
 
 // Create row x cols matrix
-function create2DArray(rows: number, cols: number): Array<Array<GameSquare>> {
+function create2DArray(rows: number, cols: number): GameSquare[][] {
   return Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ value: "", state: "default" })),
   )
@@ -24,7 +24,7 @@ function checkIfValidEquation(equation: string): boolean {
 }
 
 // List of Equation for the game
-const Answers: Array<string> = [
+const Answers: string[] = [
   "1+2-3=0",
   "5/5=1",
   "10*10=100",
@@ -33,20 +33,41 @@ const Answers: Array<string> = [
   "144/12+1=13",
 ]
 
+const RowsByDifficultyLevel = [
+  { name: "easy", rows: 6, color: "#99fc37" },
+  { name: "amateur", rows: 5, color: "#cafc25" },
+  { name: "medium", rows: 4, color: "#fcd825" },
+  { name: "hard", rows: 3, color: "#f77171" },
+  { name: "very-hard", rows: 2, color: "#ef4343" },
+  { name: "extreme", rows: 1, color: "#dc2626" },
+]
+
 // Choose a Random equation from the list
 const chooseRandomEquation = (): string => {
   return Answers[Math.floor(Math.random() * Answers.length)]
 }
 
-const Game: React.FC = () => {
+type SetState<T> = React.Dispatch<React.SetStateAction<T>>
+const Game: React.FC<{
+  setOpen: SetState<boolean>
+  setScoreArray: SetState<number[][]>
+}> = ({ setOpen, setScoreArray }) => {
   // Answer Equation for current game
   const [answerEquation, setAnswerEquation] = useState<string>(
     chooseRandomEquation(),
   )
 
+  // Game Difficulty
+  const [difficultyLevel, setDifficultyLevel] = useState<number>(0)
+
   // Number of rows and columns in the game
-  const [ROWS, setROWS] = useState<number>(6)
+  const [ROWS, setROWS] = useState<number>(RowsByDifficultyLevel[0].rows)
   const COLS = answerEquation.length
+
+  const SetDifficultyAndRow = (diff: number, rows: number) => {
+    setDifficultyLevel(diff)
+    setROWS(rows)
+  }
 
   // Checks if cheats are on
   const [cheat, setCheat] = useState<boolean>(false)
@@ -55,29 +76,22 @@ const Game: React.FC = () => {
 
   // Current Guesses made
   const [guessCount, setGuessCount] = useState<number>(0)
-  // Game Difficulty
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
-    "easy",
-  )
 
   // NewMatrix if AnswerEquation or ROWS changes
   useEffect(() => {
     SetGameMatrix(create2DArray(ROWS, COLS))
-  }, [answerEquation, difficulty])
+  }, [answerEquation, difficultyLevel])
 
-  // Difficulty Toggle bw easy(6-rows), medium(4-rows) and hard(2-rows)
+  // Difficulty
   function toggleDifficulty() {
     if (guessCount === 0) {
-      if (difficulty === "easy") {
-        setDifficulty("medium")
-        setROWS(4)
-      } else if (difficulty === "medium") {
-        setDifficulty("hard")
-        setROWS(2)
-      } else {
-        setDifficulty("easy")
-        setROWS(6)
-      }
+      if (difficultyLevel === RowsByDifficultyLevel.length - 1)
+        SetDifficultyAndRow(0, RowsByDifficultyLevel[0].rows)
+      else
+        SetDifficultyAndRow(
+          difficultyLevel + 1,
+          RowsByDifficultyLevel[difficultyLevel + 1].rows,
+        )
     }
   }
 
@@ -87,26 +101,45 @@ const Game: React.FC = () => {
     color: "text-green-500",
   })
 
+  // Everytime User Gusses
   useEffect(() => {
     // Checks if the game is Won
     if (
+      // Check all the squares in row [guessCount - 1] are have state = "correct"
       guessCount > 0 &&
       GameMatrix[guessCount - 1].filter((col) => {
         return col.state === "correct"
       }).length === COLS
     ) {
-      if (!isCheatUsed)
+      if (!isCheatUsed) {
         setHeadValue({ value: "[Won...]", color: "text-green-500" })
-      else {
+
+        // Return info to parent component
+        setScoreArray(() => {
+          let scoreArray: number[][] = GameMatrix.map((row, idx) => {
+            return row.map((col) => {
+              if (col.state === "default") return -1
+              if (col.state === "correct") return 2
+              if (col.state === "incorrect") return 0
+              else return 1
+            })
+          })
+          console.log(scoreArray)
+
+          return scoreArray
+        })
+        setOpen(true)
+      } else {
         setHeadValue({ value: "[Cheat used...]", color: "text-red-500" })
       }
-      setGuessCount(-1)
+      setGuessCount(-1) // disable all the squares
     } else if (guessCount == ROWS) {
       setHeadValue({ value: "[Lost...]", color: "text-red-500" })
-      setGuessCount(-1)
+      setGuessCount(-1) // disable all the squares
     }
   }, [guessCount])
 
+  // Everytime Answer Equation changes
   useEffect(() => {
     let isValid = checkIfValidEquation(answerEquation)
 
@@ -115,8 +148,10 @@ const Game: React.FC = () => {
     } else setHeadValue({ value: "[playing...]", color: "text-green-500" })
   }, [answerEquation])
 
+  // Initialize GameMatrix
   const [GameMatrix, SetGameMatrix] = useState(create2DArray(ROWS, COLS))
 
+  // OnKeyDown on any enabled input
   const handleInputChange = ({
     e,
     rowIndex,
@@ -134,7 +169,7 @@ const Game: React.FC = () => {
       return
     }
     // Check valid character 0-9 or + - * /
-    else if (e.key.match(/[\d+/*-=]/)) {
+    else if (e.key.match(/[\d+/*-=^]/)) {
       SetGameMatrix((prev) => {
         const newMatrix = [...prev]
         newMatrix[rowIndex][colIndex] = { value: e.key, state: "default" }
@@ -143,10 +178,13 @@ const Game: React.FC = () => {
     } else console.log("Invalid input ", e.key)
   }
 
+  // Check Against Answer
   const takeAGuess = () => {
     if (guessCount === -1) return
     let isFilled = true
     let answer = ""
+
+    // In row [guessCount] if empty set Square.state = "empty" & set isFilled = false
     for (let i = 0; i < COLS; i++) {
       if (GameMatrix[guessCount][i].value === "") {
         SetGameMatrix((prev) => {
@@ -155,6 +193,7 @@ const Game: React.FC = () => {
           return newMatrix
         })
         isFilled = false
+        // else concant on answer
       } else answer = answer.concat(GameMatrix[guessCount][i].value)
     }
     if (isFilled) {
@@ -166,11 +205,13 @@ const Game: React.FC = () => {
         for (let i = 0; i < COLS; i++) {
           SetGameMatrix(() => {
             if (answer[i] === answerEquation[i]) {
+              // Matches for correct
               newMatrix[guessCount][i] = { value: answer[i], state: "correct" }
             } else if (
               answerEquation.split("").find((char) => char === answer[i])
             ) {
               newMatrix[guessCount][i] = {
+                // Matches if any char in answerEquation
                 value: answer[i],
                 state: "partially-correct",
               }
@@ -195,16 +236,17 @@ const Game: React.FC = () => {
     <div className="grid h-full place-items-center">
       {/* Game State */}
       <div
-        className={`${headValue.color} relative w-[496px] rounded-lg p-8 mb-10 text-center text-3xl font-bold tracking-tighter bg-gray-100`}
+        className={`${headValue.color} relative w-[496px] rounded-lg py-4 mb-6  text-center text-3xl font-bold tracking-tighter bg-gray-100`}
       >
         <span className="absolute top-0 left-0 mt-2 ml-2 text-xs tracking-wider text-gray-400 uppercase">
           Game State:
         </span>
         {headValue.value}
       </div>
-      {/* GameMatrix */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex flex-col gap-2">
+
+      <div className="flex flex-col items-center gap-2 ">
+        {/* GameMatrix */}
+        <div className="flex flex-col gap-2 mb-6">
           {GameMatrix.map((row, rowIndex) => {
             return (
               <div className="flex gap-2" key={rowIndex}>
@@ -222,8 +264,9 @@ const Game: React.FC = () => {
             )
           })}
         </div>
+
         {/* Buttons */}
-        <div className="flex justify-center gap-2 mt-10">
+        <div className="flex justify-center gap-2 ">
           <button
             onClick={takeAGuess}
             className="px-6 py-4 font-black text-white bg-green-500"
@@ -264,23 +307,19 @@ const Game: React.FC = () => {
           >
             Cheat 👶
           </button>
-          <button
+          <CustomButton
+            difficultyLevel={difficultyLevel}
             onClick={toggleDifficulty}
-            className={`px-6 py-4 font-black text-white  ${
-              difficulty === "easy"
-                ? "bg-gray-300"
-                : difficulty === "medium"
-                ? "bg-yellow-300"
-                : "bg-red-600"
-            }`}
           >
-            {/* capitalize string */}
-            {difficulty.charAt(0).toUpperCase() + difficulty.slice(1) + " 🤖"}
-          </button>
+            {RowsByDifficultyLevel[difficultyLevel].name.charAt(0) +
+              RowsByDifficultyLevel[difficultyLevel].name.slice(1) +
+              " 🤖"}
+          </CustomButton>
         </div>
-        {/* Reference */}
+
+        {/* Cheat */}
         {cheat && (
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 ">
             {new Array(COLS).fill(0).map((_, idx) => {
               return (
                 <div
@@ -310,7 +349,6 @@ type CustomInputProps = {
   handleInputChange: (e: any) => void
   guesses: number
 }
-
 const CustomInput: React.FC<CustomInputProps> = ({
   inputValue,
   rowIndex,
@@ -344,6 +382,42 @@ const CustomInput: React.FC<CustomInputProps> = ({
         onChange={() => {}}
       />
     </div>
+  )
+}
+
+type CustomButtonProps = {
+  children: React.ReactNode
+  difficultyLevel: number
+  onClick: () => any
+  color: string
+}
+const CustomButton: React.FC<Partial<CustomButtonProps>> = ({
+  children,
+  difficultyLevel,
+  onClick,
+}) => {
+  // Custom colors
+  let dP: string[] = [
+    "bg-[#99fc37]",
+    "bg-[#cafc25]",
+    "bg-[#fcd825]",
+    "bg-[#f77171]",
+    "bg-[#ef4343]",
+    "bg-[#dc2626]",
+  ].reverse()
+
+  // TODO: get colors from config
+  // dP = RowsByDifficultyLevel.map((difficultyLevel) => difficultyLevel.color).reverse()
+
+  return (
+    <button
+      onClick={onClick}
+      className={`px-6 py-4 font-black text-white ${dP.at(
+        difficultyLevel === undefined ? 0 : -(difficultyLevel + 1),
+      )}`}
+    >
+      {children}
+    </button>
   )
 }
 
