@@ -16,7 +16,11 @@ export const Rules: React.FC<RulesType> = ({ open }) => {
       <span className="flex items-center justify-center gap-4 text-2xl font-black">
         <button>
           <a href="https://rebrand.ly/nerdle-translate">
-            <img src="./src/assets/translate.png" width={30} alt="Translate" />
+            <img
+              src="https://ik.imagekit.io/rezza/translate_IilSwbtdm.png?ik-sdk-version=javascript-1.4.3"
+              width={30}
+              alt="Translate"
+            />
           </a>
         </button>
         How to Play Nerdle
