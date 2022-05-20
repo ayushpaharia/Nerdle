@@ -1,36 +1,8 @@
-import React, { useEffect, useState } from "react"
-import { evaluate } from "mathjs"
+import React, { useEffect, useLayoutEffect, useState } from "react"
 import axios from "axios"
+import { checkIfValidEquation, create2DArray } from "src/helpers"
 
 let API_KEY = import.meta.env.VITE_JSONBIN_API_KEY
-
-type GameSquare = {
-  value: string
-  state: "default" | "incorrect" | "correct" | "partially-correct" | "empty"
-}
-
-type DifficultyConfig = {
-  name: string
-  ROWS: number
-  color: string
-}
-
-// Create row x cols matrix
-function create2DArray(rows: number, cols: number): GameSquare[][] {
-  return Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => ({ value: "", state: "default" })),
-  )
-}
-
-// Checks for the validity of an equation
-function checkIfValidEquation(equation: string): boolean {
-  if (!equation.split("").find((char) => char === "=")) {
-    return false
-  }
-  const LHS = equation.split("=")[0]
-  const RHS = equation.split("=")[1]
-  return evaluate(LHS) == evaluate(RHS)
-}
 
 const RowsByDifficultyLevel = [
   { name: "easy", rows: 6, color: "#99fc37" },
@@ -41,11 +13,11 @@ const RowsByDifficultyLevel = [
   { name: "extreme", rows: 1, color: "#dc2626" },
 ]
 
-type SetState<T> = React.Dispatch<React.SetStateAction<T>>
 const Game: React.FC<{
   setOpen: SetState<boolean>
+  setShowRules: SetState<boolean>
   setScoreArray: SetState<number[][]>
-}> = ({ setOpen, setScoreArray }) => {
+}> = ({ setOpen, setShowRules, setScoreArray }) => {
   const [answers, setAnswers] = useState<string[]>(["1+2+3=6"])
   const [difficultyConfig, setDifficultyConfig] = useState<DifficultyConfig[]>([
     { name: "", color: "", ROWS: 6 },
@@ -105,7 +77,9 @@ const Game: React.FC<{
   })
 
   // Initialize GameMatrix
-  const [GameMatrix, SetGameMatrix] = useState(create2DArray(ROWS, COLS))
+  const [GameMatrix, SetGameMatrix] = useState<GameSquare[][]>(
+    create2DArray(ROWS, COLS),
+  )
 
   // OnKeyDown on any enabled input
   const handleInputChange = ({
@@ -120,18 +94,45 @@ const Game: React.FC<{
     if (e.key.toLowerCase() === "enter") {
       takeAGuess()
       return
-    } else if (e.key.toLowerCase() === " " || e.key.toLowerCase() === "tab") {
-      // TODO: goto next input
-      return
     }
     // Check valid character 0-9 or + - * /
-    else if (e.key.match(/[\d+/*-=^]/)) {
+    if (e.key.match(/[\d+/*-=^ ]/)) {
       SetGameMatrix((prev) => {
         const newMatrix = [...prev]
         newMatrix[rowIndex][colIndex] = { value: e.key, state: "default" }
         return newMatrix
       })
-    } else console.log("Invalid input ", e.key)
+      document.getElementById(`${rowIndex}-${colIndex + 1}`)?.focus()
+    }
+  }
+
+  const handleButtonInput = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ) => {
+    let value = e.currentTarget.textContent || ""
+    let condition = (col: GameSquare) => {
+      return col.value === ""
+    }
+    let col = GameMatrix[guessCount].findIndex(condition)
+
+    if (value === "Delete 🗑") {
+      value = ""
+      condition = (col: GameSquare) => {
+        return col.value !== ""
+      }
+      col =
+        COLS - [...GameMatrix[guessCount]].reverse().findIndex(condition) - 1
+      if (col > COLS) return
+    }
+
+    SetGameMatrix((prev) => {
+      const newMatrix = [...prev]
+      newMatrix[guessCount][col] = {
+        value,
+        state: "default",
+      }
+      return newMatrix
+    })
   }
 
   // Check Against Answer
@@ -180,9 +181,8 @@ const Game: React.FC<{
             return newMatrix
           })
         }
-        if (guessCount !== ROWS) {
-          setGuessCount((prev) => prev + 1)
-        }
+        if (guessCount !== ROWS) setGuessCount((prev) => prev + 1)
+
         setHeadValue({ value: "[playing...]", color: "text-green-500" })
       }
     }
@@ -194,7 +194,7 @@ const Game: React.FC<{
     let {
       data: { record },
     } = await axios({
-      url: "https://api.jsonbin.io/v3/b/62824f03019db46796a1252a",
+      url: "https://api.jsonbin.io/v3/b/62824f03019db46796a1252a/latest",
       method: "get",
       headers: {
         "X-Master-Key": masterKey,
@@ -203,7 +203,7 @@ const Game: React.FC<{
     return record
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     fetchConfig()
       .then((record) => {
         setAnswerEquation(chooseRandomEquation())
@@ -305,6 +305,7 @@ const Game: React.FC<{
                         inputValue={col}
                         rowIndex={rowIndex}
                         colIndex={colIndex}
+                        id={`${rowIndex}-${colIndex}`}
                         key={`${rowIndex}-${colIndex}`}
                         handleInputChange={handleInputChange}
                         guesses={guessCount}
@@ -335,7 +336,8 @@ const Game: React.FC<{
                     })
                 }}
                 className={`${
-                  buttonConfig.reset ? "" : "hidden"
+                  true
+                  // buttonConfig.reset ? "" : "hidden"
                 } px-6 py-4 font-black text-white bg-red-500`}
               >
                 Reset 💀
@@ -345,10 +347,19 @@ const Game: React.FC<{
                   setAnswerEquation(chooseRandomEquation())
                   setGuessCount(0)
                   setIsCheatUsed(false)
+                  setShowRules(true)
                 }}
                 className="px-6 py-4 font-black text-white bg-blue-500"
               >
                 New ✨
+              </button>
+              <button
+                onClick={() => {
+                  setOpen((prev) => !prev)
+                }}
+                className="px-6 py-4 font-black text-white bg-pink-500"
+              >
+                Modal 🎁
               </button>
               <button
                 onClick={() => {
@@ -402,10 +413,55 @@ const Game: React.FC<{
                 })}
               </div>
             )}
+            <div className="flex gap-2 mt-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((num) => {
+                return (
+                  <CustomInputButton
+                    value={num.toString()}
+                    handleButtonInput={handleButtonInput}
+                  />
+                )
+              })}
+            </div>
+            <div className="flex gap-2">
+              {["+", "-", "*", "/", "=", "^"].map((num) => {
+                return (
+                  <CustomInputButton
+                    value={num}
+                    handleButtonInput={handleButtonInput}
+                  />
+                )
+              })}
+
+              <button
+                className="w-24 h-10 font-black text-white bg-slate-800 "
+                onClick={handleButtonInput}
+              >
+                Delete 🗑
+              </button>
+            </div>
           </div>
         </div>
       )}
     </>
+  )
+}
+
+type CustomInputButtonProps = {
+  value: string
+  handleButtonInput: (e: any) => void
+}
+const CustomInputButton: React.FC<CustomInputButtonProps> = ({
+  handleButtonInput,
+  value,
+}) => {
+  return (
+    <button
+      className="w-10 h-10 text-xl bg-gray-300"
+      onClick={handleButtonInput}
+    >
+      {value}
+    </button>
   )
 }
 
@@ -415,6 +471,7 @@ type CustomInputProps = {
   colIndex: number
   handleInputChange: (e: any) => void
   guesses: number
+  id: string
 }
 const CustomInput: React.FC<CustomInputProps> = ({
   inputValue,
@@ -422,27 +479,27 @@ const CustomInput: React.FC<CustomInputProps> = ({
   colIndex,
   handleInputChange,
   guesses,
+  id,
 }) => {
   const { value, state } = inputValue
+
   const color = (state: string): string => {
-    return state === "correct"
-      ? "bg-green-500"
-      : state === "empty"
-      ? "bg-yellow-200"
-      : state === "partially-correct"
-      ? "bg-yellow-400"
-      : state === "default"
-      ? "bg-gray-200"
-      : "bg-black text-white"
+    let states: Record<string, string> = {
+      correct: "bg-green-500",
+      incorrect: "bg-black text-white",
+      empty: "bg-yellow-200",
+      "partially-correct": "bg-yellow-400",
+      default: "bg-gray-200",
+    }
+    return states[state] || "bg-black text-white"
   }
 
   return (
-    <div className="flex items-center justify-center w-16 h-16 bg-gray-200">
+    <div className="flex items-center justify-center w-12 h-12 bg-gray-200">
       <input
+        id={id}
         type="text"
-        className={`w-16 h-16 text-3xl text-center  outline-none ${color(
-          state,
-        )}`}
+        className={`w-12 h-12 text-xl text-center outline-none ${color(state)}`}
         value={value ? (value as string) : ""}
         disabled={guesses !== rowIndex}
         onKeyDown={(e) => handleInputChange({ e, rowIndex, colIndex })}

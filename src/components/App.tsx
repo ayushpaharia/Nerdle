@@ -1,15 +1,26 @@
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useState } from "react"
+
 import Navbar from "components/Navbar"
 import Game from "components/Game"
+import ModalWithScore from "components/ModalWithScore"
+import Rules from "components/Rules"
 
 function App() {
   const [open, setOpen] = useState<boolean>(false)
   const [yourScore, setYourScore] = useState<string>("")
   const [scoreArray, setScoreArray] = useState<number[][]>([[]])
+  const [showRules, setShowRules] = useState<boolean>(true)
 
   useEffect(() => {
     getYourScore()
+    return () => {
+      setShowRules(false)
+    }
   }, [scoreArray])
+
+  useLayoutEffect(() => {
+    setTimeout(() => setOpen(true), 1000)
+  }, [])
 
   const getYourScore = () => {
     setYourScore(() => {
@@ -28,39 +39,31 @@ function App() {
     })
   }
 
-  const getScoreHeight = () => {
-    return yourScore.length === 0 ? 0 : yourScore.split("\n").length
-  }
-
   return (
     <>
       <div
         onClick={() => setOpen(!open)}
         className={`${
           open ? "visibile" : "invisible"
-        } absolute z-10 grid w-screen  h-screen overflow-y-hidden place-items-center`}
+        } absolute z-10 grid w-screen h-screen bg-black bg-opacity-20 overflow-y-hidden place-items-center`}
       >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className={`${
-            open ? "translate-y-0" : "translate-y-[100vh]"
-          } px-10 py-6 bg-gray-50 rounded-md shadow-md transition-all duration-500 ease-in-out transform`}
-        >
-          <h1 className="mb-2 text-2xl font-black text-black">Your Score</h1>
-          <textarea
-            style={{
-              height: 27 + getScoreHeight() * 26 + 27,
-              width: 15 + scoreArray[0].length * 24 + 15,
-            }}
-            className="pt-6 overflow-y-hidden text-xl font-bold text-center bg-gray-200 rounded-sm outline-none resize-none "
-            disabled
-            value={yourScore}
+        {showRules ? (
+          <Rules open={open} />
+        ) : (
+          <ModalWithScore
+            yourScore={yourScore}
+            open={open}
+            scoreArray={scoreArray}
           />
-        </div>
+        )}
       </div>
       <div>
         <Navbar />
-        <Game setOpen={setOpen} setScoreArray={setScoreArray} />
+        <Game
+          setOpen={setOpen}
+          setShowRules={setShowRules}
+          setScoreArray={setScoreArray}
+        />
       </div>
     </>
   )
